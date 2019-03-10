@@ -82,7 +82,7 @@ vocab_size = len(word_index)
 embeding_vector_length = 32
 
 model = keras.Sequential()
-model.add(keras.layers.Embedding(vocab_size, embeding_vector_length, input_length=input_length))
+model.add(keras.layers.Embedding(vocab_size, embeding_vector_length, input_length=maxlen))
 model.add(keras.layers.GlobalAveragePooling1D())
 model.add(keras.layers.Dense(16, activation=tf.nn.relu))
 model.add(keras.layers.Dense(num_classes, activation='softmax'))
