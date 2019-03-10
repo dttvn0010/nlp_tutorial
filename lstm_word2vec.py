@@ -8,22 +8,18 @@ from random import shuffle
 from pyvi import ViTokenizer, ViPosTagger
 
 from gensim.models import Word2Vec
+import re
 
-wv_model = Word2Vec.load('vi.bin')
-
-special_char = [chr(c + ord('0')) for c in range(10)]
-special_char.extend([' ', '~', '!', '@', '#', '$', '%', '^', '&', '-', '+', '=', 
-                     '{', '}', '[', ']', '\\', '|', '/', '<', '>', '?', '“', '”', '"',
-                    '‘', '’'])
+special_char_regex = '.*[0-9~!@#$%^&\-\+={}\[\]\\|/<>?“”"‘’].*'
 
 def is_valid_word(word):
-    return all(c not in word for c in special_char)
+    return re.match(special_char_regex, word) == None
 
 def word_tokenize(sentence):
     words, postags = ViPosTagger.postagging(ViTokenizer.tokenize(sentence.lower()))
     return [word for word in words if is_valid_word(word)]
     
-
+wv_model = Word2Vec.load('vi.bin')
 topics = ['xahoi' , 'kinhdoanh', 'thethao', 'vanhoa']
 topic_names = ['Xã hội', 'Kinh doanh', 'Thể thao', 'Văn hóa']
 
