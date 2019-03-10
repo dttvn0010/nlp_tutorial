@@ -6,6 +6,7 @@ from keras.utils import to_categorical
 from keras.preprocessing.sequence import pad_sequences
 from random import shuffle
 from pyvi import ViTokenizer, ViPosTagger
+import gensim
 
 special_char = [chr(c + ord('0')) for c in range(10)]
 special_char.extend([' ', '~', '!', '@', '#', '$', '%', '^', '&', '-', '+', '=', 
@@ -31,8 +32,6 @@ train_labels = []
 test_docs = []
 test_labels = []
 
-word_count = {}
-
 for i in range(len(topics)):
     fn = os.path.join('data/titles', topics[i] + '.txt')
     f = open(fn, encoding='utf8')
@@ -44,8 +43,6 @@ for i in range(len(topics)):
             continue
         train_docs.append(tokens)
         train_labels.append(i)    
-        for token in set(tokens):
-            word_count[token] = word_count.get(token, 0) + 1        
     #
     for line in lines[5000:10000]:
         tokens = word_tokenize(line.strip())
@@ -54,43 +51,40 @@ for i in range(len(topics)):
         test_docs.append(tokens)
         test_labels.append(i)
     f.close()
-
+	
     
-word_items = word_count.items()
-word_items = sorted(word_items, key=lambda x : x[1], reverse=True)
+dictionary = gensim.corpora.Dictionary(train_docs)
+dictionary.filter_extremes(no_below=2, no_above=0.5, keep_n=10000)
+vocab_size = len(dictionary)
 
-word_index = {item[0]:i+3 for i,item in enumerate(word_items[:10000])}
-word_index["<PAD>"] = 0
-word_index["<START>"] = 1
-word_index["<UNK>"] = 2  # unknown
-word_index["<UNUSED>"] = 3
+bow_corpus = [dictionary.doc2bow(doc) for doc in train_docs]
+tfidf = gensim.models.TfidfModel(bow_corpus)
 
-def encode_tokens(tokens):    
-    return [word_index.get(token, 0) for token in tokens]
+def createData(docs, labels):
+    X = []
+    y = []
+    #
+    for doc, label in zip(docs, labels):
+        bow_vector = tfidf[dictionary.doc2bow(doc)] #dictionary.doc2bow(doc)
+        wordvec = np.zeros(vocab_size)    
+        for index, value in bow_vector:
+            wordvec[index] = value
+        X.append(wordvec)
+        y.append(to_categorical(label, num_classes))
+    #
+    return np.array(X), np.array(y)
 
-maxlen = 24
-Xtrain = [encode_tokens(doc) for doc in train_docs]
-Xtrain = pad_sequences(Xtrain, value=0, maxlen=maxlen)
-ytrain = np.array([to_categorical(label, num_classes) for label in train_labels])
+Xtrain, ytrain = createData(train_docs, train_labels)
+Xtest, ytest = createData(test_docs, test_labels)
 
-Xtest = [encode_tokens(doc) for doc in test_docs]
-Xtest = pad_sequences(Xtest, value=0, maxlen=maxlen)
-ytest = np.array([to_categorical(label, num_classes) for label in test_labels])
-
-
-vocab_size = len(word_index)
-embeding_vector_length = 32
 
 model = keras.Sequential()
-model.add(keras.layers.Embedding(vocab_size, embeding_vector_length, input_length=input_length))
-model.add(keras.layers.GlobalAveragePooling1D())
-model.add(keras.layers.Dense(16, activation=tf.nn.relu))
+model.add(keras.layers.Dense(5, input_dim=vocab_size, activation='sigmoid'))
 model.add(keras.layers.Dense(num_classes, activation='softmax'))
+model.compile(loss='categorical_crossentropy', metrics=['accuracy'], optimizer='adam')
 
 model.summary()
 
-model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['acc'])
-
-model.fit(Xtrain, ytrain, epochs=10, batch_size=64, verbose=1)
+model.fit(Xtrain, ytrain, epochs=20, shuffle=True)
 
 model.evaluate(Xtest, ytest)
