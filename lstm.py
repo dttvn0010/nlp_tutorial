@@ -19,10 +19,6 @@ def word_tokenize(sentence):
     
 
 topics = ['xahoi' , 'kinhdoanh', 'thethao', 'vanhoa']
-topic_names = ['Xã hội', 'Kinh doanh', 'Thể thao', 'Văn hóa']
-
-num_classes = len(topics)
-
 train_docs = []
 train_labels = []
 
