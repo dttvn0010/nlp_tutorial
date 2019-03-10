@@ -1,0 +1,6 @@
+def create_model(maxlen, embeding_vector_length, vocab_size, neurons):
+    model = keras.Sequential()
+    model.add(keras.layers.Embedding(vocab_size, embeding_vector_length, input_length=maxlen))
+    model.add(keras.layers.LSTM(neurons, input_shape=(maxlen, embeding_vector_length), dropout=0.1, recurrent_dropout=0.1))
+    model.add(keras.layers.Dense(1, activation='sigmoid'))
+    return model
