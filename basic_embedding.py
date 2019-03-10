@@ -6,14 +6,12 @@ from keras.utils import to_categorical
 from keras.preprocessing.sequence import pad_sequences
 from random import shuffle
 from pyvi import ViTokenizer, ViPosTagger
+import re
 
-special_char = [chr(c + ord('0')) for c in range(10)]
-special_char.extend([' ', '~', '!', '@', '#', '$', '%', '^', '&', '-', '+', '=', 
-                     '{', '}', '[', ']', '\\', '|', '/', '<', '>', '?', '“', '”', '"',
-                    '‘', '’'])
+special_char_regex = '.*[0-9~!@#$%^&\-\+={}\[\]\\|/<>?“”"‘’].*'
 
 def is_valid_word(word):
-    return all(c not in word for c in special_char)
+    return re.match(special_char_regex, word) == None
 
 def word_tokenize(sentence):
     words, postags = ViPosTagger.postagging(ViTokenizer.tokenize(sentence.lower()))
